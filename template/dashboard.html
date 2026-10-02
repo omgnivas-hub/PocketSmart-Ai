@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | PocketSmart AI{% endblock %}
+{% block content %}
+<header class="page-head">
+  <div class="container">
+    <h1>Welcome, {{ user.full_name or user.username }}</h1>
+    <p>Pick a planner to start a new budget plan.</p>
+  </div>
+</header>
+<main class="container">
+  {% if not ai_enabled %}
+  <div class="alert info">Demo mode is on: no Gemini API key is set, so plans use built-in rules. Add <code>GOOGLE_API_KEY</code> to your <code>.env</code> file and restart to use Gemini.</div>
+  {% endif %}
+  <div class="grid">
+    <article class="planner-card"><span class="ico">🏠</span><h3>Home budget planner</h3>
+      <p>Furniture, lighting and fans for your rooms.</p><a class="btn small" href="/home-planner">Start home plan</a></article>
+    <article class="planner-card"><span class="ico">🎉</span><h3>Party budget planner</h3>
+      <p>Venue, catering, decoration and entertainment.</p><a class="btn small" href="/party-planner">Start party plan</a></article>
+    <article class="planner-card"><span class="ico">💎</span><h3>Jewelry budget planner</h3>
+      <p>Pieces that suit the occasion and your outfit.</p><a class="btn small" href="/jewelry-planner">Start jewelry plan</a></article>
+  </div>
+  <section class="panel" style="margin-top:1.5rem">
+    <header class="panel-h"><h2>Recent activity</h2><a class="btn small light" href="/history">View all history</a></header>
+    <ul class="recent" id="recent-list"><li class="empty">Loading...</li></ul>
+  </section>
+</main>
+{% endblock %}
