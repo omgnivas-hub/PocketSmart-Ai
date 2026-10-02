@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Create account | PocketSmart AI{% endblock %}
+{% block nav %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<main class="auth-wrap">
+  <div class="auth-card">
+    <a class="auth-brand" href="/">💼 PocketSmart</a>
+    <h1>Create your account</h1>
+    <p class="hint">Free to use. Your plans are saved to your history.</p>
+    <form id="register-form" novalidate>
+      <div id="form-msg" class="alert error" role="alert" hidden></div>
+      <div><label for="username">Username</label>
+        <input id="username" name="username" type="text" autocomplete="username" minlength="3" maxlength="30" required autofocus>
+        <p class="hint">3-30 letters, numbers, dots, dashes or underscores.</p></div>
+      <div><label for="full_name">Full name (optional)</label>
+        <input id="full_name" name="full_name" type="text" autocomplete="name" maxlength="80"></div>
+      <div><label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required></div>
+      <div><label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+        <p class="hint">At least 8 characters.</p></div>
+      <div><label for="confirm">Confirm password</label>
+        <input id="confirm" name="confirm" type="password" autocomplete="new-password" required></div>
+      <button class="btn block" type="submit">Create account</button>
+    </form>
+    <p class="auth-foot">Already registered? <a href="/login">Sign in</a></p>
+  </div>
+</main>
+{% endblock %}
