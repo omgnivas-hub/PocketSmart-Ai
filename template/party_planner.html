@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Party budget planner | PocketSmart AI{% endblock %}
+{% block content %}
+<header class="page-head"><div class="container">
+  <h1>Party budget planner</h1>
+  <p>Share your budget and guest count. Get a split across venue, food, decor and entertainment.</p>
+</div></header>
+<main class="container">
+  <form class="panel" data-planner="party" novalidate>
+    <div class="panel-body">
+      <div id="form-msg" class="alert error" role="alert" hidden></div>
+      <fieldset><legend>Basics</legend>
+        <div class="fields">
+          <div><label for="total_budget">Total budget (₹)</label><input id="total_budget" name="total_budget" type="number" min="1" step="any" value="50000" required></div>
+          <div><label for="num_guests">Number of guests</label><input id="num_guests" name="num_guests" type="number" min="1" max="5000" value="30" required></div>
+        </div>
+      </fieldset>
+      <fieldset><legend>Event details</legend>
+        <div class="fields">
+          <div><label for="party_type">Party type</label>
+            <select id="party_type" name="party_type">
+              <option>Birthday</option><option>Wedding</option><option>Corporate</option><option>Anniversary</option>
+              <option>Baby shower</option><option>Farewell</option><option>Housewarming</option><option>Other</option>
+            </select></div>
+          <div><label for="venue_type">Venue type</label>
+            <select id="venue_type" name="venue_type">
+              <option>Home</option><option>Banquet hall</option><option>Restaurant</option>
+              <option>Garden or outdoor</option><option>Office</option><option>Hotel or resort</option>
+            </select></div>
+        </div>
+      </fieldset>
+      <fieldset><legend>What do you need?</legend>
+        <div class="checks">
+          <label class="check"><input type="checkbox" name="needs_catering" checked> Catering</label>
+          <label class="check"><input type="checkbox" name="needs_decoration" checked> Decoration</label>
+          <label class="check"><input type="checkbox" name="needs_entertainment" checked> Entertainment</label>
+        </div>
+      </fieldset>
+      <fieldset><legend>Anything else?</legend>
+        <label for="additional_requirements">Themes, dietary needs, special requests (optional)</label>
+        <textarea id="additional_requirements" name="additional_requirements" maxlength="500" placeholder="Example: vegetarian menu, superhero theme, kids activities"></textarea>
+      </fieldset>
+      <button class="btn" type="submit">Generate budget plan</button>
+    </div>
+  </form>
+  <div id="results" aria-live="polite"></div>
+</main>
+{% endblock %}
