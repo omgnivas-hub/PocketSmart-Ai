@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Home budget planner | PocketSmart AI{% endblock %}
+{% block content %}
+<header class="page-head"><div class="container">
+  <h1>Home interior budget planner</h1>
+  <p>Set a budget and quantities. Get a room-friendly plan with shopping links.</p>
+</div></header>
+<main class="container">
+  <form class="panel" data-planner="home" novalidate>
+    <div class="panel-body">
+      <div id="form-msg" class="alert error" role="alert" hidden></div>
+      <fieldset><legend>Budget</legend>
+        <div class="fields"><div><label for="total_budget">Total budget (₹)</label>
+          <input id="total_budget" name="total_budget" type="number" min="1" step="any" value="100000" required></div></div>
+      </fieldset>
+      <fieldset><legend>Fixtures and furniture</legend>
+        <div class="fields">
+          <div><label for="num_lights">Lights / fixtures</label><input id="num_lights" name="num_lights" type="number" min="0" max="200" value="6"></div>
+          <div><label for="num_fans">Ceiling fans</label><input id="num_fans" name="num_fans" type="number" min="0" max="100" value="3"></div>
+          <div><label for="num_furniture">Furniture pieces</label><input id="num_furniture" name="num_furniture" type="number" min="0" max="200" value="4"></div>
+          <div><label for="num_dining_tables">Dining tables</label><input id="num_dining_tables" name="num_dining_tables" type="number" min="0" max="50" value="1"></div>
+        </div>
+      </fieldset>
+      <fieldset><legend>Rooms to include</legend>
+        <div class="checks">
+          <label class="check"><input type="checkbox" name="has_living_room" checked> Living room</label>
+          <label class="check"><input type="checkbox" name="has_kitchen" checked> Kitchen</label>
+          <label class="check"><input type="checkbox" name="has_bedroom"> Bedroom</label>
+        </div>
+      </fieldset>
+      <fieldset><legend>Anything else?</legend>
+        <label for="additional_requirements">Style or requirements (optional)</label>
+        <textarea id="additional_requirements" name="additional_requirements" maxlength="500" placeholder="Example: modern look, warm lighting, energy-efficient fans"></textarea>
+      </fieldset>
+      <button class="btn" type="submit">Generate recommendations</button>
+    </div>
+  </form>
+  <div id="results" aria-live="polite"></div>
+</main>
+{% endblock %}
