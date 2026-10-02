@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}History | PocketSmart AI{% endblock %}
+{% block content %}
+<header class="page-head"><div class="container">
+  <h1>Your recommendation history</h1>
+  <p>Review any earlier plan in full.</p>
+</div></header>
+<main class="container">
+  <div class="grid" id="history-list"><div class="loading"><span class="spinner"></span> Loading your plans...</div></div>
+</main>
+<dialog id="detail-dialog" aria-labelledby="dlg-title">
+  <div class="dlg-head"><strong id="dlg-title">Plan details</strong><button id="close-dialog" class="btn light small" type="button">Close</button></div>
+  <div class="dlg-body" id="detail-body"></div>
+</dialog>
+{% endblock %}
