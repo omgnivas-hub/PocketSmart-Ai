@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}PocketSmart AI: budget planning for home, parties and jewelry{% endblock %}
+{% block content %}
+<header class="hero">
+  <div class="container">
+    <div>
+      <h1>Plan the spend before you spend it</h1>
+      <p>Tell PocketSmart your budget. It splits the money across what you need and links you to Amazon, Flipkart, IKEA, Swiggy, Zomato, OYO and more.</p>
+      <div class="actions">
+        {% if user %}
+          <a class="btn orange" href="/dashboard">Open dashboard</a>
+        {% else %}
+          <a class="btn orange" href="/register">Create free account</a>
+          <a class="btn light" href="/login">Sign in</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="sample" aria-label="Example budget split">
+      <h3>Example: ₹1,00,000 home makeover</h3>
+      <div class="split" role="img" aria-label="Fans 28%, furniture 30%, lighting 22%, dining 20%">
+        <i style="width:28%;background:#3d6db3"></i><i style="width:30%;background:#12305a"></i>
+        <i style="width:22%;background:#f28c1b"></i><i style="width:20%;background:#8aa9d6"></i>
+      </div>
+      <ul class="legend">
+        <li><b style="--c:#3d6db3">Ceiling fans</b><span>₹25,760</span></li>
+        <li><b style="--c:#12305a">Furniture</b><span>₹27,600</span></li>
+        <li><b style="--c:#f28c1b">Lighting</b><span>₹20,240</span></li>
+        <li><b style="--c:#8aa9d6">Dining table</b><span>₹18,400</span></li>
+        <li><span>Kept as buffer</span><span>₹8,000</span></li>
+      </ul>
+    </div>
+  </div>
+</header>
+
+<section class="section" id="planners">
+  <div class="container">
+    <h2>Three planners, one budget mindset</h2>
+    <p class="lead">Each planner asks a few questions and returns an itemised plan with shopping links.</p>
+    <div class="grid">
+      <article class="planner-card"><span class="ico">🏠</span><h3>Home interior planner</h3>
+        <p>Lights, ceiling fans, furniture and dining tables balanced across your rooms and price range.</p>
+        <a class="btn small" href="/home-planner">Plan my home</a></article>
+      <article class="planner-card"><span class="ico">🎉</span><h3>Party planner</h3>
+        <p>Split your budget across venue, catering, decoration and entertainment for any event.</p>
+        <a class="btn small" href="/party-planner">Plan my party</a></article>
+      <article class="planner-card"><span class="ico">💎</span><h3>Jewelry planner</h3>
+        <p>Pieces matched to the occasion, your style and, if you upload one, your outfit colours.</p>
+        <a class="btn small" href="/jewelry-planner">Find jewelry</a></article>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <div class="container">
+    <h2>How it works</h2>
+    <p class="lead">You set the limits. The plan stays inside them.</p>
+    <ol class="steps">
+      <li><strong>Enter your budget</strong><br>Add what you need: rooms, guests, occasion or an outfit photo.</li>
+      <li><strong>Get a checked plan</strong><br>Gemini suggests items and prices; PocketSmart re-adds every total and flags anything over budget.</li>
+      <li><strong>Shop the links</strong><br>Jump straight to search results on the shops that fit each item.</li>
+    </ol>
+    <div class="cta-band">
+      <h2>Ready to plan your next purchase?</h2>
+      <div class="actions">
+        {% if user %}<a class="btn orange" href="/dashboard">Open dashboard</a>
+        {% else %}<a class="btn orange" href="/register">Create account</a><a class="btn light" href="/login">Sign in</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
