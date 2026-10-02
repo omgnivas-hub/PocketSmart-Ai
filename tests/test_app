@@ -1,0 +1,200 @@
+"""End-to-end tests. Run with:  pytest -v
+Gemini is never called: demo mode is forced, and the AI path is tested with a stubbed response."""
+import io
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+os.environ["DB_PATH"] = str(Path(tempfile.mkdtemp()) / "test.db")
+os.environ["SECRET_KEY"] = "test-secret-key-that-is-long-enough-for-hs256"
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import pytest
+from fastapi.testclient import TestClient
+from PIL import Image
+
+import config as cfg
+import gemini_utils
+import main
+
+cfg.GEMINI_API_KEY = ""  # force demo mode regardless of the developer's .env
+
+
+@pytest.fixture(scope="module")
+def client():
+    with TestClient(main.app) as c:
+        yield c
+
+
+@pytest.fixture(scope="module")
+def authed(client):
+    r = client.post("/register", json={"username": "Tester", "email": "t@example.com",
+                                       "full_name": "Test User", "password": "secret123"})
+    assert r.status_code == 201, r.text
+    r = client.post("/token", data={"username": "tester", "password": "secret123"})
+    assert r.status_code == 200 and "access_token" in r.json()
+    return client
+
+
+def test_health_and_public_pages(client):
+    assert client.get("/health").json()["status"] == "ok"
+    for path in ("/", "/login", "/register"):
+        assert client.get(path).status_code == 200
+
+
+def test_protected_pages_redirect_to_login(client):
+    fresh = TestClient(main.app)
+    r = fresh.get("/dashboard", headers={"accept": "text/html"}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/login"
+    assert fresh.get("/recommendation-history").status_code == 401
+
+
+def test_register_validation_and_duplicates(client, authed):
+    dup = client.post("/register", json={"username": "tester", "email": "other@example.com", "password": "secret123"})
+    assert dup.status_code == 409
+    short = client.post("/register", json={"username": "new1", "email": "n@example.com", "password": "short"})
+    assert short.status_code == 422
+
+
+def test_login_wrong_password():
+    r = TestClient(main.app).post("/token", data={"username": "tester", "password": "wrong-password"})
+    assert r.status_code == 401
+
+
+def test_all_pages_render_when_logged_in(authed):
+    for path in ("/dashboard", "/home-planner", "/party-planner", "/jewelry-planner", "/history"):
+        r = authed.get(path)
+        assert r.status_code == 200, path
+
+
+def test_home_plan_demo_mode(authed):
+    body = {"total_budget": 100000, "num_lights": 6, "num_fans": 3, "num_furniture": 4, "num_dining_tables": 1,
+            "has_living_room": True, "has_kitchen": True, "has_bedroom": False}
+    r = authed.post("/home-budget", json=body)
+    assert r.status_code == 200, r.text
+    d = r.json()
+    assert d["source"] == "fallback" and d["kind"] == "home"
+    assert d["allocated"] <= 100000 and not d["over_budget"]
+    assert abs(d["allocated"] + d["remaining_budget"] - 100000) < 0.01
+    assert {c["category"] for c in d["budget_breakdown"]} == {"lighting", "ceiling_fans", "furniture", "dining_tables"}
+    assert d["budget_breakdown"][0]["items"][0]["shopping_links"]["amazon"].startswith("https://www.amazon.in/s?k=")
+    assert authed.post("/generate-home", json=body).status_code == 200  # alias route
+
+
+def test_home_validation(authed):
+    r = authed.post("/home-budget", json={"total_budget": 5000})  # no items requested
+    assert r.status_code == 422
+    r = authed.post("/home-budget", json={"total_budget": -5, "num_lights": 1})
+    assert r.status_code == 422
+
+
+def test_party_plan_demo_mode(authed):
+    r = authed.post("/party-budget", json={"total_budget": 50000, "num_guests": 25, "party_type": "Birthday",
+                                           "venue_type": "Banquet hall"})
+    assert r.status_code == 200, r.text
+    d = r.json()
+    cats = {c["category"] for c in d["budget_breakdown"]}
+    assert {"venue", "catering", "decoration", "entertainment", "contingency"} <= cats
+    assert d["venue_suggestions"] and d["allocated"] <= 50000
+    assert authed.post("/party-budget", json={"total_budget": 1000, "num_guests": 5, "needs_catering": False,
+                                              "needs_decoration": False, "needs_entertainment": False}).status_code == 422
+
+
+def test_jewelry_plan_with_and_without_image(authed):
+    r = authed.post("/jewelry-budget", data={"total_budget": "20000", "occasion": "Wedding", "preferences": "gold"})
+    assert r.status_code == 200, r.text
+    assert r.json()["outfit_analysis"] is None and len(r.json()["jewelry_recommendations"]) == 3
+
+    buf = io.BytesIO()
+    Image.new("RGB", (80, 80), (30, 60, 200)).save(buf, "PNG")
+    r = authed.post("/jewelry-budget", data={"total_budget": "20000", "occasion": "Party"},
+                    files={"image": ("outfit.png", buf.getvalue(), "image/png")})
+    assert r.status_code == 200, r.text
+    assert "blue" in r.json()["outfit_analysis"]["colors"]
+    assert list(cfg.UPLOAD_DIR.glob("*.jpg")) == []  # uploads are removed after analysis
+
+    bad = authed.post("/jewelry-budget", data={"total_budget": "20000", "occasion": "Party"},
+                      files={"image": ("x.png", b"not an image", "image/png")})
+    assert bad.status_code == 400
+
+
+def test_history_and_details(authed):
+    hist = authed.get("/recommendation-history").json()["history"]
+    assert len(hist) >= 4 and {h["type"] for h in hist} >= {"home", "party", "jewelry"}
+    detail = authed.get(f"/recommendation-details/{hist[0]['id']}")
+    assert detail.status_code == 200 and "full_result" in detail.json()
+    assert authed.get("/recommendation-details/does-not-exist").status_code == 404
+
+
+def test_session_endpoints(authed):
+    assert authed.get("/session-info").json()["username"] == "tester"
+    r = authed.post("/session-data", json={"theme": "dark"})
+    assert r.json()["data"]["theme"] == "dark"
+
+
+def test_ai_path_with_stubbed_gemini(authed, monkeypatch):
+    """Simulate Gemini output, including fenced JSON, string prices and wrong self-reported totals."""
+    monkeypatch.setattr(cfg, "GEMINI_API_KEY", "fake-key")
+    calls = []
+
+    def fake(prompt, image_path=None):
+        calls.append(prompt)
+        return gemini_utils._extract_json(
+            '```json\n{"budget_breakdown":[{"category":"Ceiling Fans","items":[{"name":"Havells fan",'
+            '"description":"5 star","estimated_price":"₹2,500","quantity":"2","search_terms":"havells 1200mm fan"}]}],'
+            '"additional_suggestions":["Compare prices"],"total_cost":1}\n```')
+
+    monkeypatch.setattr(gemini_utils, "_call_gemini", fake)
+    r = authed.post("/home-budget", json={"total_budget": 10000, "num_fans": 2})
+    d = r.json()
+    assert r.status_code == 200 and d["source"] == "gemini"
+    item = d["budget_breakdown"][0]["items"][0]
+    assert item["estimated_price"] == 2500 and item["line_total"] == 5000 and d["remaining_budget"] == 5000
+    assert "flipkart" in item["shopping_links"] and d["budget_breakdown"][0]["category"] == "ceiling_fans"
+
+
+def test_ai_over_budget_retries_then_falls_back(authed, monkeypatch):
+    monkeypatch.setattr(cfg, "GEMINI_API_KEY", "fake-key")
+    calls = []
+
+    def greedy(prompt, image_path=None):
+        calls.append(prompt)
+        return {"budget_breakdown": [{"category": "furniture", "items": [
+            {"name": "Sofa", "estimated_price": 999999, "quantity": 1, "search_terms": "sofa"}]}]}
+
+    monkeypatch.setattr(gemini_utils, "_call_gemini", greedy)
+    d = authed.post("/home-budget", json={"total_budget": 20000, "num_furniture": 1}).json()
+    assert len(calls) == 2 and "IMPORTANT" in calls[1]
+    assert d["source"] == "fallback" and d["allocated"] <= 20000 and "over budget" in d["notice"]
+
+
+def test_ai_failure_falls_back(authed, monkeypatch):
+    monkeypatch.setattr(cfg, "GEMINI_API_KEY", "fake-key")
+
+    def boom(prompt, image_path=None):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr(gemini_utils, "_call_gemini", boom)
+    d = authed.post("/party-budget", json={"total_budget": 20000, "num_guests": 10}).json()
+    assert d["source"] == "fallback" and "unavailable" in d["notice"]
+
+
+def test_extract_json_variants():
+    assert gemini_utils._extract_json('{"a": 1}') == {"a": 1}
+    assert gemini_utils._extract_json('Here you go:\n{"a": 2}\nThanks') == {"a": 2}
+    with pytest.raises(ValueError):
+        gemini_utils._extract_json("no json at all")
+    with pytest.raises(ValueError):
+        gemini_utils._extract_json("")
+
+
+def test_logout_invalidates_token(client):
+    c = TestClient(main.app)
+    c.post("/token", data={"username": "tester", "password": "secret123"})
+    assert c.get("/session-info").status_code == 200
+    token = c.cookies.get("access_token")
+    c.get("/logout", follow_redirects=False)
+    stale = TestClient(main.app)
+    stale.cookies.set("access_token", token)
+    assert stale.get("/session-info").status_code == 401
